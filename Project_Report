@@ -1,157 +1,170 @@
-# Project Report
+# PROJECT REPORT
 
-## Local RAG Document Q&A Chatbot
-
-### 1. Project Title
-
-**Local RAG Document Q&A Chatbot**
+## Local LLM Document Q&A Chatbot using RAG
 
 ---
 
-## 2. Project Overview
+## 1. Project Overview
 
-The Local RAG Document Q&A Chatbot is a document question-answering system that uses **Retrieval-Augmented Generation (RAG)** to answer questions from locally stored PDF documents.
+The **Local LLM Document Q&A Chatbot** is a Retrieval-Augmented Generation (RAG) application that allows users to ask questions about information contained in locally stored PDF documents.
 
-The system combines document processing, semantic search, a local vector database, and a locally running Large Language Model (LLM).
+The system processes PDF documents, extracts their text, divides the text into smaller chunks, converts the chunks into numerical embeddings, and stores them in a local **ChromaDB vector database**.
 
-Users can ask questions through a web-based chat interface. The system retrieves relevant information from the ingested documents and provides it as context to the local LLM. The generated response is returned along with source document and page information.
+When a user asks a question, the system converts the question into an embedding and performs semantic similarity search against the stored document chunks. The most relevant chunks are then provided as context to a locally running **Llama 3.2 3B** model through **Ollama**.
 
-The project was designed to operate locally using **Ollama and Llama 3.2 3B**, without requiring an external LLM API.
+The generated response is restricted to the retrieved document context and includes source references containing the document name and page number.
 
----
-
-# 3. Objectives
-
-The main objectives of the project were:
-
-1. Build a fully local document question-answering system.
-2. Process PDF documents automatically.
-3. Convert document text into meaningful chunks.
-4. Generate semantic embeddings for document chunks.
-5. Store embeddings in a local vector database.
-6. Retrieve relevant document chunks for user questions.
-7. Use a local LLM to generate answers based on retrieved context.
-8. Prevent unsupported answers when relevant information is unavailable.
-9. Provide source document and page references.
-10. Expose the system through a FastAPI backend.
-11. Provide a simple web-based chatbot interface.
-12. Test and document the complete application.
+The entire RAG pipeline runs locally without requiring an external cloud-based LLM API.
 
 ---
 
-# 4. Technologies Used
+# 2. Objectives
 
-| Component            | Technology                   |
-| -------------------- | ---------------------------- |
-| Programming Language | Python                       |
-| LLM                  | Llama 3.2 3B                 |
-| Local LLM Runtime    | Ollama                       |
-| RAG                  | Custom Python implementation |
-| PDF Processing       | PyMuPDF                      |
-| Embedding Model      | all-MiniLM-L6-v2             |
-| Embedding Library    | Sentence Transformers        |
-| Vector Database      | ChromaDB                     |
-| Backend              | FastAPI                      |
-| Frontend             | HTML, CSS, JavaScript        |
-| HTTP Communication   | Requests                     |
-| Testing              | Pytest                       |
-| Configuration        | python-dotenv                |
-| Version Control      | Git and GitHub               |
+The main objectives of the project are:
+
+* Build a completely local document question-answering system.
+* Process PDF documents automatically.
+* Extract text from PDF files using PyMuPDF.
+* Split documents into manageable text chunks.
+* Generate semantic embeddings using Sentence Transformers.
+* Store and retrieve document chunks using ChromaDB.
+* Use Ollama to run the Llama 3.2 3B local language model.
+* Generate answers grounded in retrieved document content.
+* Provide source references for generated answers.
+* Prevent the model from answering questions that are unrelated to the indexed documents.
+* Provide a simple web-based chatbot interface.
+* Expose the RAG functionality through a FastAPI backend.
+* Maintain logs and automated tests for reliability.
 
 ---
 
-# 5. System Architecture
+# 3. Technologies Used
 
-The system consists of two major workflows:
+| Technology            | Purpose                                |
+| --------------------- | -------------------------------------- |
+| Python                | Main programming language              |
+| FastAPI               | Backend REST API                       |
+| Ollama                | Local LLM runtime                      |
+| Llama 3.2 3B          | Local language model                   |
+| Sentence Transformers | Text embeddings                        |
+| all-MiniLM-L6-v2      | Embedding model                        |
+| ChromaDB              | Local vector database                  |
+| PyMuPDF               | PDF text extraction                    |
+| HTML/CSS/JavaScript   | Frontend chatbot                       |
+| Requests              | Communication with Ollama              |
+| Pytest                | Automated testing                      |
+| python-dotenv         | Environment configuration              |
+| Git/GitHub            | Version control and project submission |
 
-### Document Ingestion
+---
+
+# 4. System Architecture
+
+The system follows a Retrieval-Augmented Generation architecture.
 
 ```text
-PDF Documents
-      ↓
-PyMuPDF
-      ↓
-Text Extraction
-      ↓
-Text Chunking
-      ↓
-Embedding Generation
-      ↓
-ChromaDB
-```
-
-### Question Answering
-
-```text
-User Question
-      ↓
-FastAPI
-      ↓
-Question Embedding
-      ↓
-ChromaDB Semantic Search
-      ↓
-Relevant Chunks
-      ↓
-Relevance Filtering
-      ↓
-Prompt Construction
-      ↓
-Ollama
-      ↓
-Llama 3.2 3B
-      ↓
-Generated Answer
-      ↓
-Source References
-      ↓
-User
+                 PDF Documents
+                       |
+                       v
+                  PyMuPDF
+                       |
+                       v
+                 Text Extraction
+                       |
+                       v
+                  Text Chunking
+                       |
+                       v
+              Sentence Transformer
+                       |
+                       v
+                 Embeddings
+                       |
+                       v
+                   ChromaDB
+                Vector Database
+                       |
+                       |
+                 User Question
+                       |
+                       v
+              Question Embedding
+                       |
+                       v
+              Semantic Retrieval
+                       |
+                       v
+               Relevant Chunks
+                       |
+                       v
+             Prompt + Retrieved Context
+                       |
+                       v
+                 Ollama Server
+                       |
+                       v
+                Llama 3.2 3B
+                       |
+                       v
+              Answer + Source References
+                       |
+                       v
+                  Web Chat UI
 ```
 
 ---
 
-# 6. Working Methodology
+# 5. Project Workflow
 
-## 6.1 Document Loading
+The system consists of two major stages:
 
-PDF files are stored in:
+1. Document ingestion
+2. Question answering
+
+---
+
+## 5.1 Document Ingestion
+
+The ingestion process prepares the documents for retrieval.
+
+### Step 1: PDF Loading
+
+PDF documents stored inside:
 
 ```text
 data/documents/
 ```
 
-PyMuPDF is used to open each PDF and extract text page by page.
+are loaded using **PyMuPDF**.
 
-Each extracted page is stored together with metadata:
+The loader extracts text page by page and stores metadata such as:
 
-```python
-{
-    "text": "...",
-    "source": "NeerRaksha.pdf",
-    "page": 1
-}
-```
-
-Maintaining the source and page metadata allows the system to provide citations later.
+* Document name
+* Page number
+* Extracted text
 
 ---
 
-## 6.2 Text Chunking
+## 5.2 Text Chunking
 
-Large documents cannot efficiently be processed as one large text block.
+Large documents cannot always be processed effectively as a single block.
 
-Therefore, extracted text is divided into smaller chunks.
+Therefore, the extracted text is divided into smaller chunks.
 
-The project uses:
+The current configuration uses:
 
 ```text
 Chunk size: 1000 characters
 Chunk overlap: 200 characters
 ```
 
-The overlap helps maintain contextual information between neighboring chunks.
+The overlap helps preserve contextual information between neighboring chunks.
 
-Each chunk is assigned a unique identifier.
+Each chunk receives a unique identifier containing:
+
+* Document name
+* Page number
+* Chunk number
 
 Example:
 
@@ -161,116 +174,131 @@ NeerRaksha_page_1_chunk_0
 
 ---
 
-## 6.3 Embedding Generation
+## 5.3 Embedding Generation
 
-Each text chunk is converted into a numerical representation called an **embedding**.
-
-The project uses:
+Each text chunk is converted into a numerical vector using:
 
 ```text
 all-MiniLM-L6-v2
 ```
 
-The model produces a 384-dimensional vector representation.
+The embedding model produces a **384-dimensional vector representation** for each chunk.
 
-The purpose of embeddings is to represent the semantic meaning of text so that semantically similar questions and document chunks can be identified.
+These vectors allow the system to compare the semantic meaning of the user question with the document content.
 
 ---
 
-## 6.4 Vector Storage
+## 5.4 Vector Storage
 
-The generated embeddings are stored in **ChromaDB**.
+The generated embeddings and their corresponding text are stored in:
 
-Each stored record contains:
+```text
+ChromaDB
+```
 
-* Chunk ID
+ChromaDB is configured as a persistent local vector database.
+
+The stored information includes:
+
 * Chunk text
 * Embedding
-* Source document
+* Document name
 * Page number
-
-This allows the system to perform semantic similarity searches when users ask questions.
+* Chunk ID
 
 ---
 
-## 6.5 Question Processing
+# 6. Question Answering Pipeline
 
-When a user submits a question, the question is converted into an embedding using the same embedding model used for the document chunks.
+When a user asks a question, the following process occurs.
 
-The question embedding is then compared against the vectors stored in ChromaDB.
+### Step 1: User Question
 
-The system retrieves the closest document chunks.
+Example:
+
+```text
+What problem does NeerRaksha solve?
+```
+
+### Step 2: Question Embedding
+
+The question is converted into an embedding using the same:
+
+```text
+all-MiniLM-L6-v2
+```
+
+embedding model.
+
+### Step 3: Semantic Search
+
+The question embedding is compared with the embeddings stored in ChromaDB.
+
+The system retrieves the most semantically relevant document chunks.
 
 The default retrieval count is:
 
 ```text
-RETRIEVAL_TOP_K = 5
+Top K = 5
 ```
 
----
+### Step 4: Relevance Filtering
 
-## 6.6 Relevance Filtering
+Retrieved chunks are checked using a configurable distance threshold.
 
-Simply retrieving the closest chunks does not guarantee that they are actually relevant.
-
-Therefore, the project uses a retrieval distance threshold:
+Current configuration:
 
 ```text
 RETRIEVAL_MAX_DISTANCE = 1.90
 ```
 
-Only chunks within the configured threshold are considered relevant.
+Only sufficiently relevant chunks are passed to the generation stage.
 
-If no relevant information is found, the system returns:
+### Step 5: Context Construction
 
-> I couldn't find this information in the provided documents.
+The relevant chunks are combined into a context containing:
 
-This helps reduce unsupported responses.
+```text
+Document name
+Page number
+Chunk content
+```
 
----
+### Step 6: Prompt Construction
 
-## 6.7 Prompt Construction
+The retrieved context and user question are provided to the Llama model through a structured prompt.
 
-Relevant chunks are added to a structured prompt.
-
-The prompt instructs the LLM to:
+The prompt instructs the model to:
 
 * Use only the supplied context.
-* Avoid using external knowledge.
+* Avoid using general knowledge.
 * Avoid inventing information.
-* Provide citations.
-* Return a clear and concise response.
+* Cite factual statements.
+* Return a predefined response when the information is unavailable.
 
-Retrieved information is labelled with source identifiers such as:
+### Step 7: Local LLM Generation
 
-```text
-[SOURCE 1]
-```
-
----
-
-## 6.8 Local LLM Generation
-
-The prompt is sent to the locally running Llama 3.2 3B model through Ollama.
-
-The application communicates with Ollama through its local API:
+The prompt is sent to:
 
 ```text
-http://localhost:11434/api/generate
+Ollama
 ```
 
-Ollama processes the prompt and returns the generated response.
+using its local API.
 
----
+The selected model is:
 
-## 6.9 Source Citations
+```text
+llama3.2:3b
+```
 
-The system preserves source document and page metadata throughout the retrieval process.
+### Step 8: Answer and Sources
 
-The API returns source information in the following structure:
+The API returns:
 
 ```json
 {
+  "answer": "Generated answer...",
   "sources": [
     {
       "source": "NeerRaksha.pdf",
@@ -280,43 +308,77 @@ The API returns source information in the following structure:
 }
 ```
 
-The LLM is also instructed to use source markers such as:
+---
+
+# 7. Source Citation
+
+Source references are included to improve answer traceability.
+
+For example:
 
 ```text
-[SOURCE 1]
+NeerRaksha addresses problems related to water-body protection. [SOURCE 1]
 ```
 
-This allows users to identify where the information used for the answer came from.
+The API additionally returns the document and page:
+
+```text
+NeerRaksha.pdf
+Page 1
+```
+
+This allows the user to identify where the information was retrieved from.
 
 ---
 
-# 7. Backend Implementation
+# 8. Handling Unrelated Questions
 
-FastAPI is used as the backend framework.
+An important part of the project is preventing unsupported answers.
 
-The main endpoints are:
+For example, if the indexed documents do not contain information about France and the user asks:
 
-### Health Check
+```text
+What is the capital of France?
+```
+
+the system returns:
+
+```text
+I couldn't find this information in the provided documents.
+```
+
+No source is returned when no retrieved chunk passes the configured relevance threshold.
+
+This demonstrates that the application is designed to provide **document-grounded answers rather than unrestricted general knowledge answers**.
+
+---
+
+# 9. Backend API
+
+The backend is implemented using **FastAPI**.
+
+## Health Check
 
 ```text
 GET /health
 ```
 
-Used to verify that the API is running.
+Example response:
 
-### Chat
+```json
+{
+  "status": "ok",
+  "message": "RAG API is running"
+}
+```
+
+## Chat Endpoint
 
 ```text
 POST /chat
 ```
 
-Accepts a user question and returns:
-
-* Generated answer
-* Source document
-* Page number
-
-Example request:
+Request:
 
 ```json
 {
@@ -324,40 +386,67 @@ Example request:
 }
 ```
 
----
+Response:
 
-# 8. Frontend Implementation
-
-The frontend consists of:
-
-```text
-static/
-├── index.html
-├── style.css
-└── script.js
+```json
+{
+  "answer": "Generated answer...",
+  "sources": [
+    {
+      "source": "NeerRaksha.pdf",
+      "page": 1
+    }
+  ]
+}
 ```
 
-The interface allows users to:
+FastAPI automatically provides interactive API documentation at:
 
-1. Enter a question.
-2. Send the question to the backend.
-3. Display the generated response.
-4. Display source document references.
-
-The frontend communicates with the FastAPI backend using HTTP requests.
+```text
+/docs
+```
 
 ---
 
-# 9. Project Structure
+# 10. Frontend
+
+A lightweight web interface was developed using:
+
+* HTML
+* CSS
+* JavaScript
+
+The interface provides:
+
+* Question input
+* Send button
+* Chat-style conversation
+* Generated answer display
+* Source document display
+* Page number display
+
+The frontend communicates with the FastAPI backend.
+
+The application can be accessed locally at:
+
+```text
+http://127.0.0.1:8000/
+```
+
+---
+
+# 11. Project Structure
 
 ```text
 local-rag-chatbot/
 │
 ├── app/
 │   ├── api/
+│   │   ├── __init__.py
 │   │   └── routes.py
 │   │
 │   ├── rag/
+│   │   ├── __init__.py
 │   │   ├── loader.py
 │   │   ├── splitter.py
 │   │   ├── chunker.py
@@ -366,6 +455,7 @@ local-rag-chatbot/
 │   │   └── pipeline.py
 │   │
 │   ├── llm/
+│   │   ├── __init__.py
 │   │   └── ollama_client.py
 │   │
 │   ├── logger.py
@@ -389,6 +479,7 @@ local-rag-chatbot/
 │   ├── test_loader.py
 │   └── manual/
 │
+├── .env
 ├── .env.example
 ├── .gitignore
 ├── README.md
@@ -397,327 +488,359 @@ local-rag-chatbot/
 
 ---
 
-# 10. Testing
+# 12. Testing
 
-Testing was performed at both component and application levels.
+Automated tests were created using **Pytest**.
 
-The project contains automated tests for:
+The test suite covers important application components including:
 
-* PDF loading
-* Chunk generation
-* API functionality
+### PDF Loader
 
-Tests can be executed using:
+Verifies that PDF documents can be loaded and page information is extracted correctly.
 
-```powershell
-pytest
-```
+### Chunker
 
-Manual scripts were also used during development to verify:
+Verifies:
 
-* PDF extraction
-* Text chunking
+* Text splitting
+* Chunk creation
+* Chunk metadata
+* Unique chunk identifiers
+
+### API
+
+Verifies API endpoints and request/response behavior.
+
+Manual tests were also created for:
+
+* Ollama connectivity
 * Embedding generation
-* Ollama communication
-* ChromaDB retrieval
-* RAG responses
+* Retrieval
+* Search
+* Complete RAG pipeline
+* Chunking behavior
 
 ---
 
-# 11. Difficulties Encountered
+# 13. Difficulties Encountered
 
-## 11.1 Understanding the RAG Architecture
+## 13.1 Python Environment Setup
 
-One of the initial challenges was understanding how document retrieval and LLM generation work together.
+The initial Python environment had PATH-related issues where the Python command was not immediately available.
 
-The system was broken into smaller components:
+A virtual environment was created and dependencies were installed inside it.
+
+---
+
+## 13.2 Ollama Configuration
+
+The local LLM required Ollama to be installed and the required model to be downloaded.
+
+The selected model was:
 
 ```text
-Loading
-→ Chunking
-→ Embeddings
-→ Vector Storage
-→ Retrieval
-→ Prompt Construction
-→ LLM Generation
+llama3.2:3b
 ```
 
-This made it easier to develop and debug each stage independently.
-
----
-
-## 11.2 PDF Text Extraction
-
-Different PDF files can have different internal structures.
-
-PyMuPDF was used to extract text page by page while preserving page information.
-
-This also allowed source references to be maintained throughout the pipeline.
-
----
-
-## 11.3 Chunk ID Collisions
-
-During multi-document ingestion, chunks from different documents could potentially receive identical identifiers.
-
-For example:
+The application communicates with Ollama through:
 
 ```text
-page_1_chunk_0
+http://localhost:11434/api/generate
 ```
 
-could occur in multiple documents.
+---
 
-This was resolved by including the source document name:
+## 13.3 Retrieval Threshold
+
+One of the main challenges was determining an appropriate similarity-distance threshold.
+
+Some relevant questions initially produced distances higher than the first threshold used during testing.
+
+The retrieval threshold was therefore made configurable through:
+
+```text
+RETRIEVAL_MAX_DISTANCE
+```
+
+The current value is:
+
+```text
+1.90
+```
+
+This allows the system to retrieve relevant information while filtering unrelated questions.
+
+---
+
+## 13.4 Multiple Document Chunk IDs
+
+Initially, chunk identifiers could conflict when multiple documents contained the same page and chunk numbers.
+
+This was solved by including the document name in the chunk ID.
+
+Example:
 
 ```text
 NeerRaksha_page_1_chunk_0
 sample_page_1_chunk_0
 ```
 
-This ensures that chunks from different documents have unique identifiers.
-
 ---
 
-## 11.4 Irrelevant Retrieval
+## 13.5 Testing Unrelated Questions
 
-A vector database can return the closest available chunks even when the user asks a question that is not covered by the documents.
+Testing questions outside the document content showed that retrieval filtering needed to be handled carefully.
 
-For example:
-
-```text
-What is the capital of France?
-```
-
-could still return unrelated document chunks because the search must find the closest available vectors.
-
-A retrieval distance threshold was therefore introduced.
-
-```text
-RETRIEVAL_MAX_DISTANCE=1.90
-```
-
-If no chunks meet the threshold, the system responds that the information could not be found in the provided documents.
-
----
-
-## 11.5 Source Citation Handling
-
-The system needed to preserve source information from the original PDF through:
-
-```text
-PDF
-→ Page
-→ Chunk
-→ Vector Database
-→ Retrieval
-→ LLM Context
-→ API Response
-```
-
-Source and page metadata were therefore stored with every chunk.
-
----
-
-## 11.6 Local LLM Integration
-
-Another challenge was connecting the Python application to a locally running LLM.
-
-Ollama's local HTTP API was used to communicate between the Python backend and Llama 3.2 3B.
-
-Error handling and request timeouts were added to the Ollama client.
-
----
-
-## 11.7 Environment Configuration
-
-Configuration values such as the Ollama model and retrieval threshold were moved to `.env`.
-
-This avoids hardcoding configuration values throughout the application.
-
-A `.env.example` file was also created to document the required configuration.
-
----
-
-## 11.8 GitHub Authentication
-
-While publishing the project, GitHub HTTPS authentication initially failed because password authentication is not supported for Git operations.
-
-Git Credential Manager was configured and the repository was successfully pushed to GitHub.
-
----
-
-# 12. Total Development Time Per Task
-
-The following is an approximate breakdown of development time spent on each major task.
-
-| Task                                       |   Approx. Time |
-| ------------------------------------------ | -------------: |
-| Project planning and architecture          |       1.0 hour |
-| Python environment and dependency setup    |      0.75 hour |
-| Ollama and Llama model setup               |      0.75 hour |
-| PDF loading with PyMuPDF                   |       1.0 hour |
-| Text splitting and chunking                |       1.0 hour |
-| Embedding implementation                   |       1.0 hour |
-| ChromaDB integration                       |      1.5 hours |
-| Document ingestion pipeline                |       1.0 hour |
-| RAG retrieval pipeline                     |      2.0 hours |
-| Ollama LLM integration                     |      1.5 hours |
-| Prompt engineering and citations           |       1.0 hour |
-| Relevance threshold implementation         |       1.0 hour |
-| FastAPI backend                            |      1.5 hours |
-| Frontend implementation                    |      1.5 hours |
-| Testing and debugging                      |      2.0 hours |
-| Logging and configuration                  |      0.75 hour |
-| README and documentation                   |       1.0 hour |
-| Git/GitHub setup and repository publishing |      0.75 hour |
-| **Total Approximate Development Time**     | **20.5 hours** |
-
-The times are approximate and represent development, debugging, testing, and documentation activities rather than continuous uninterrupted work.
-
----
-
-# 13. Output and Expected Behavior
-
-For a question covered by the documents, the system should return:
-
-```text
-Answer:
-<grounded answer> [SOURCE 1]
-
-Sources:
-NeerRaksha.pdf — Page 1
-```
-
-For a question not supported by the documents:
+The final pipeline checks retrieved distances and returns:
 
 ```text
 I couldn't find this information in the provided documents.
 ```
 
-The latter behavior is intended to prevent the system from presenting unrelated information as though it came from the documents.
+when no sufficiently relevant context is available.
 
 ---
 
-# 14. Supporting Files
+## 13.6 Source Handling
 
-The project submission includes or is intended to include:
+The system was designed to return document and page metadata along with the answer.
 
-```text
-Source code
-Scripts
-README
-Requirements file
-Automated tests
-Manual tests
-Screenshots
-Demo video
-Sample API output
-Retrieval output
-Supporting project documentation
-```
-
-Screenshots should demonstrate:
-
-1. Application home page.
-2. Successful question and answer.
-3. Source citation.
-4. Question outside the document knowledge.
-5. Swagger API documentation.
-6. Project/repository structure.
+This allows users to identify the source of retrieved information.
 
 ---
 
-# 15. Assumptions
+# 14. Assumptions
 
 The following assumptions were made during development:
 
-* PDF documents contain extractable text.
-* Documents are placed manually in the document directory.
-* The ingestion script is run whenever new documents are added.
-* Ollama is installed and running locally.
-* Llama 3.2 3B is available through Ollama.
-* The embedding model is downloaded when required.
-* ChromaDB is used as the local vector database.
-* Answers should be grounded only in retrieved document content.
-* The current implementation focuses on PDF documents.
+1. PDF documents are stored in the configured `data/documents/` directory.
+2. The documents contain extractable text.
+3. Ollama is installed and running locally.
+4. The required Llama model is available locally.
+5. The embedding model is available through Sentence Transformers.
+6. ChromaDB is used as the local vector database.
+7. Users ask questions related to the indexed documents.
+8. The system does not require internet access for LLM inference.
+9. Retrieval quality depends on document quality, chunking configuration, embedding quality, and the selected retrieval threshold.
+10. Source citations identify the document and page from which the retrieved context originated.
+
+---
+
+# 15. Logging
+
+Application logging was implemented using Python's `logging` module.
+
+Logs contain information such as:
+
+* Retrieval requests
+* Number of retrieved chunks
+* Retrieval distances
+* Relevant chunk count
+* Ollama requests
+* Ollama responses
+* Errors
+
+Logs are stored in:
+
+```text
+logs/app.log
+```
+
+The `logs/` directory is excluded from Git using `.gitignore`.
 
 ---
 
 # 16. Other Observations
 
-* The project uses **RAG rather than fine-tuning**.
-* Llama 3.2 3B was not retrained using the project documents.
-* The embedding model and LLM serve different purposes.
-* The embedding model converts text into vectors for semantic retrieval.
-* ChromaDB stores and searches those vectors.
-* The LLM generates the final natural-language response using retrieved context.
-* Ollama provides the local runtime for the LLM.
-* The system can process multiple PDF documents.
-* Source metadata is retained from the original PDF through the complete retrieval pipeline.
-* The retrieval threshold is configurable through the `.env` file.
-* The current system does not include a web-based PDF upload feature; documents are placed in the configured document directory before ingestion.
-* The system is designed primarily as a local academic/technical demonstration rather than a production-scale document management platform.
-* Retrieval quality depends on factors such as chunk size, overlap, embedding model, document quality, and retrieval threshold.
-* Answer quality depends significantly on the relevance and completeness of the retrieved context.
+The project demonstrates that a useful document Q&A application can be implemented entirely with local components.
+
+The system separates the major RAG stages into independent modules:
+
+```text
+Loading
+   ↓
+Chunking
+   ↓
+Embedding
+   ↓
+Vector Storage
+   ↓
+Retrieval
+   ↓
+Prompt Construction
+   ↓
+LLM Generation
+```
+
+This modular structure makes individual components easier to test, modify, and replace.
+
+The project also demonstrates the difference between **retrieval** and **generation**:
+
+* ChromaDB is responsible for finding relevant document content.
+* The Llama model is responsible for generating a natural-language response from that retrieved context.
+
+The local architecture also avoids sending document content to an external LLM API during normal inference.
 
 ---
 
 # 17. Future Enhancements
 
+Possible future improvements include:
+
+### 17.1 Multiple File Formats
+
+Support additional document formats such as:
+
+* DOCX
+* TXT
+* Markdown
+* HTML
+
+### 17.2 Improved Chunking
+
+Implement semantic or paragraph-based chunking instead of fixed character-based chunking.
+
+### 17.3 Better Retrieval
+
 Possible improvements include:
 
-### Document Support
+* Hybrid search
+* Reranking
+* Metadata filtering
+* Improved similarity thresholds
+* Query expansion
 
-* Support DOCX, TXT, and HTML documents.
-* Automatic document monitoring.
-* Web-based document management.
+### 17.4 Conversation Memory
 
-### Retrieval
+The chatbot could be extended to maintain conversation history and answer follow-up questions.
 
-* Hybrid keyword and semantic search.
-* Reranking models.
-* Improved chunking strategies.
-* Metadata-based filtering.
+### 17.5 Streaming Responses
 
-### LLM
+Ollama streaming could be implemented to display generated responses progressively.
 
-* Streaming responses.
-* Support for additional local models.
-* Configurable generation parameters.
+### 17.6 Authentication
 
-### User Experience
+Authentication could be added if the application is deployed for multiple users.
 
-* Conversation history.
-* Improved citation display.
-* Multiple-document selection.
-* Search history.
+### 17.7 Deployment
 
-### Engineering
-
-* Docker support.
-* CI/CD pipeline.
-* More extensive automated tests.
-* Performance monitoring.
-* Retrieval and answer-quality evaluation.
+The system could be containerized using Docker and deployed on a suitable local or private server environment.
 
 ---
 
-# 18. Conclusion
+# 18. Development Time per Task
 
-The Local RAG Document Q&A Chatbot demonstrates how a local Large Language Model can be combined with document retrieval to create a grounded question-answering system.
+| Task                         | Approx. Time |
+| ---------------------------- | -----------: |
+| Planning and architecture    |       1.0 hr |
+| Environment and dependencies |      0.75 hr |
+| Ollama and model setup       |      0.75 hr |
+| PDF loading                  |       1.0 hr |
+| Text chunking                |       1.0 hr |
+| Embedding implementation     |       1.0 hr |
+| ChromaDB integration         |       1.5 hr |
+| Document ingestion           |       1.0 hr |
+| RAG retrieval pipeline       |       2.0 hr |
+| Ollama integration           |       1.5 hr |
+| Prompt and citation handling |       1.0 hr |
+| Retrieval threshold tuning   |       1.0 hr |
+| FastAPI backend              |       1.5 hr |
+| Frontend implementation      |       1.5 hr |
+| Testing and debugging        |       2.0 hr |
+| Logging and configuration    |      0.75 hr |
+| README and documentation     |       1.0 hr |
+| Git/GitHub setup             |      0.75 hr |
+| **Total**                    | **20.5 hrs** |
 
-The application processes PDF documents, creates semantic embeddings, stores them in ChromaDB, retrieves relevant information for user questions, and provides that information to a locally running Llama 3.2 3B model through Ollama.
+---
 
-The final system provides:
+# 19. Submission Artifacts
 
-* Local LLM inference
-* Semantic document retrieval
-* Context-grounded generation
-* Source references
-* REST API access
-* Web-based interaction
-* Configurable retrieval
-* Logging and testing
+The project submission contains the following major components:
 
-The project demonstrates the complete basic workflow of a practical local RAG application, from document ingestion to retrieval and answer generation.
+* Source code
+* RAG implementation
+* PDF ingestion script
+* Requirements file
+* Environment configuration example
+* Automated tests
+* Manual testing scripts
+* README documentation
+* Sample PDF documents
+* ChromaDB regeneration process
+* Application logs
+* Screenshots
+* Demo video
+* Project report
+* Public GitHub repository
+
+GitHub repository:
+
+```text
+https://github.com/dhanavishva27/local-rag-chatbot
+```
+
+---
+
+# 20. Expected Output
+
+For a question related to the indexed documents, the system should generate an answer based on retrieved document content and provide source information.
+
+Example:
+
+```text
+Question:
+What problem does NeerRaksha solve?
+
+Answer:
+[Generated answer based on the retrieved document context]
+
+Source:
+NeerRaksha.pdf
+Page: 1
+```
+
+For information that is not available in the indexed documents:
+
+```text
+Question:
+What is the capital of France?
+
+Answer:
+I couldn't find this information in the provided documents.
+
+Sources:
+None
+```
+
+---
+
+# 21. Conclusion
+
+The **Local LLM Document Q&A Chatbot** successfully implements a complete Retrieval-Augmented Generation pipeline using locally running components.
+
+The system can ingest PDF documents, extract and chunk their content, generate semantic embeddings, store them in ChromaDB, retrieve relevant information for user questions, and use the locally running Llama 3.2 3B model through Ollama to generate grounded responses.
+
+The application also provides source references, relevance filtering, a FastAPI backend, a web-based chatbot interface, logging, and automated tests.
+
+The completed system demonstrates the practical implementation of core RAG concepts including:
+
+```text
+Document Ingestion
+       ↓
+Chunking
+       ↓
+Embeddings
+       ↓
+Vector Database
+       ↓
+Semantic Retrieval
+       ↓
+Context Augmentation
+       ↓
+Local LLM Generation
+       ↓
+Source-Cited Answer
+```
+
+The project provides a foundation that can be extended with more advanced retrieval techniques, additional document formats, conversation memory, streaming responses, and deployment capabilities.
